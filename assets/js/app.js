@@ -16,12 +16,12 @@ import $ from "jquery";
 //
 // Local files can be imported directly using relative paths, for example:
 // import socket from "./socket"
-import todo_init from "./todo";
+import hangman_init from "./hangman";
 
 $(() => {
   let root = document.getElementById('root');
   if (root) {
-    todo_init(root);
+    hangman_init(root);
   }
 });
 
