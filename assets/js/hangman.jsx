@@ -2,51 +2,52 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import _ from "lodash";
 
-export default function hangman_init(root) {
-  ReactDOM.render(<Hangman />, root);
+export default function hangman_init(root, channel) {
+  ReactDOM.render(<Hangman channel={channel} />, root);
 }
 
-// App state for Hangman is:
+// Client-Side state for Hangman is:
 // {
-//    word: String             // the word to be guessed
-//    guesses: List of Letters // letters guessed so far (unique)
+//    skel:  List of letters and _ indicating where good guesses go.
+//    goods: Set of letters, good guesses
+//    bads:  Set of letters, bad guesses
 //    lives: Int               // initial lives
 // }
 
 class Hangman extends React.Component {
   constructor(props) {
     super(props);
+
+    this.channel = props.channel;
     this.state = {
-      word: "elephant",
-      guesses: [],
+      skel: [],
+      goods: [],
+      bads: [],
       lives: 10,
     };
+
+    this.channel
+        .join()
+        .receive("ok", this.got_view.bind(this))
+        .receive("error", resp => { console.log("Unable to join", resp); });
   }
 
-  word_letters() {
-    return this.state.word.split("");
-  }
-
-  bad_guesses() {
-    let goods = this.word_letters();
-    let bads = [];
-    this.state.guesses.forEach( (gg) => {
-      if (!goods.includes(gg)) {
-        bads.push(gg);
-      }
-    });
-    return bads;
+  got_view(view) {
+    console.log("new view", view);
+    this.setState(view.game);
   }
 
   lives_left() {
-    return this.state.lives - this.bad_guesses().length;
+    return this.state.lives - this.state.bads.length;
   }
 
   on_guess(ev) {
-    let st1 = _.assign({}, this.state, {
-      guesses: _.uniq(ev.target.value),
-    });
-    this.setState(st1);
+    this.channel.push("guess", { letter: ev.target.value.substr(-1) })
+        .receive("ok", this.got_view.bind(this));
+  }
+
+  guesses() {
+    return _.concat(this.state.goods, this.state.bads);
   }
 
   render() {
@@ -54,7 +55,7 @@ class Hangman extends React.Component {
       <div>
         <div className="row">
           <div className="column">
-            <Word letters={this.word_letters()} guesses={this.state.guesses} />
+            <Word skeleton={this.state.skel} />
           </div>
           <div className="column">
             <Lives lives={this.lives_left()} max={this.state.lives} />
@@ -62,10 +63,10 @@ class Hangman extends React.Component {
         </div>
         <div className="row">
           <div className="column">
-            <Guesses guesses={this.state.guesses} />
+            <Guesses guesses={this.state.bads} />
           </div>
           <div className="column">
-            <GuessInput guesses={this.state.guesses}
+            <GuessInput guesses={this.guesses()}
                         on_guess={this.on_guess.bind(this)} />
           </div>
         </div>
@@ -75,16 +76,11 @@ class Hangman extends React.Component {
 }
 
 function Word(params) {
-  let {letters, guesses} = params;
-  let skeleton = _.map(letters, (xx, ii) => {
-    let text = guesses.includes(xx) ? xx : "_";
-    return <span style={{padding: "1ex"}} key={ii}>{text}</span>;
-  });
-
+  let {skeleton} = params;
   return (
     <div>
       <p><b>The Word</b></p>
-      <p>{skeleton}</p>
+      <p>{skeleton.join(" ")}</p>
     </div>
   );
 }

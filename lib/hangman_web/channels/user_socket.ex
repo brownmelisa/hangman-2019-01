@@ -3,6 +3,7 @@ defmodule HangmanWeb.UserSocket do
 
   ## Channels
   # channel "room:*", HangmanWeb.RoomChannel
+  channel "games:*", HangmanWeb.GamesChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
