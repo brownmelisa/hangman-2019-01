@@ -15,13 +15,16 @@ import $ from "jquery";
 // Import local files
 //
 // Local files can be imported directly using relative paths, for example:
-// import socket from "./socket"
-import todo_init from "./todo";
+import socket from "./socket";
+import hangman_init from "./hangman";
+
+// Now that you are connected, you can join channels with a topic:
+let channel = socket.channel("games:demo", {});
 
 $(() => {
   let root = document.getElementById('root');
   if (root) {
-    todo_init(root);
+    hangman_init(root, channel);
   }
 });
 
