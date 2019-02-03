@@ -9,9 +9,10 @@ defmodule Hangman.Application do
     # List all child processes to be supervised
     children = [
       # Start the endpoint when the application starts
-      HangmanWeb.Endpoint
+      HangmanWeb.Endpoint,
       # Starts a worker by calling: Hangman.Worker.start_link(arg)
       # {Hangman.Worker, arg},
+      Hangman.BackupAgent,
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
