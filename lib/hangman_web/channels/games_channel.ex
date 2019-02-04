@@ -6,7 +6,7 @@ defmodule HangmanWeb.GamesChannel do
   def join("games:" <> name, payload, socket) do
     if authorized?(payload) do
       game = Game.new()
-      socket
+      socket = socket
       |> assign(:game, game)
       |> assign(:name, name)
       {:ok, %{"join" => name, "game" => Game.client_view(game)}, socket}

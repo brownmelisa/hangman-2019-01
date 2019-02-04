@@ -28,7 +28,7 @@ defmodule Hangman.Game do
       raise "That's not a real letter"
     end
 
-    gs = Game.guesses
+    gs = game.guesses
     |> MapSet.new()
     |> MapSet.put(letter)
     |> MapSet.to_list

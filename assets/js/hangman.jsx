@@ -16,16 +16,23 @@ export default function hangman_init(root, channel) {
     - Wrong guess: Lose a life.
     - You lose if no more lives.
 
-   Application state for hangman:
+   Application state for hangman: (lives on server)
 
    {
       word: String                   // The hidden word
       guesses: Array of Characters   // Letters guessed so
       lives: Number                  // Lives left
    }
- */
 
-let MAX_LIVES = 6;
+   Client view for Hangman: (visible in JS code)
+
+   {
+      skel: The letters in the word as displayed, including unknown letters.
+      goods: List of correct guesses
+      bads: List of incorrect guesses
+      max_lives: Starting value for lives
+   }
+ */
 
 class Hangman extends React.Component {
   constructor(props) {
@@ -33,53 +40,47 @@ class Hangman extends React.Component {
 
     this.channel = props.channel;
     this.state = {
-      word: "jazz",
-      guesses: [],
-      lives: MAX_LIVES,
+      skel: [],
+      goods: [],
+      bads: [],
+      max_lives: 6,
     }
 
     this.channel.join()
-        .receive("ok", resp => { console.log("Joined successfully", resp); })
+        .receive("ok", resp => {
+          console.log("Joined successfully", resp);
+          this.setState(resp.game);
+        })
         .receive("error", resp => { console.log("Unable to join", resp); });
   }
 
   got_input(ev) {
-    let letters = this.state.word.split('');
-    let guesses = ev.target.value.split('');
+    let letter = ev.target.value.substr(-1);
+    this.channel.push("guess", { letter: letter })
+        .receive("ok", (resp) => { this.setState(resp.game); });
+  }
 
-    let wrong_guesses = 0;
-    _.each(guesses, (guess) => {
-      if (!letters.includes(guess)) {
-        wrong_guesses += 1;
-      }
-    });
-
-    let lives = MAX_LIVES - wrong_guesses;
-
-    this.setState(_.assign(
-      {},
-      this.state,
-      { lives, guesses },
-    ));
+  guesses() {
+    return this.state.bads.concat(this.state.goods);
   }
 
   render() {
     return <div>
       <div className="row">
         <div className="column">
-          <Word letters={this.state.word.split('')}
-                guesses={this.state.guesses} />
+          <Word skeleton={this.state.skel} />
         </div>
         <div className="column">
-          <Lives left={this.state.lives} />
+          <Lives left={this.state.max_lives - this.state.bads.length}
+                 max={this.state.max_lives} />
         </div>
       </div>
       <div className="row">
         <div className="column">
-          <Guesses guesses={this.state.guesses} />
+          <Guesses guesses={this.guesses()} />
         </div>
         <div className="column">
-          <GuessInput guesses={this.state.guesses}
+          <GuessInput guesses={this.guesses()}
                       on_change={this.got_input.bind(this)} />
         </div>
       </div>
@@ -88,23 +89,13 @@ class Hangman extends React.Component {
 }
 
 function Word(props) {
-  let {letters, guesses} = props;
-
-  let skel = _.map(letters, (ll) => {
-    if (guesses.includes(ll)) {
-      return ll;
-    }
-    else {
-      return "_";
-    }
-  });
-
-  return <p>{skel.join(' ')}</p>;
+  let {skeleton} = props;
+  return <p>{skeleton.join(' ')}</p>;
 }
 
 function Lives(props) {
-  let {left} = props;
-  return <p>Lives left: {left} / {MAX_LIVES}</p>;
+  let {left, max} = props;
+  return <p>Lives left: {left} / {max}</p>;
 }
 
 function Guesses({guesses}) {
